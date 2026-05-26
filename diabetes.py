@@ -1,74 +1,49 @@
 import streamlit as st
 import pandas as pd
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score
+st.title("당뇨병 예측 프로그램")
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
+# 사용자 입력
+preg = st.number_input("임신 횟수", min_value=0, step=1)
+glucose = st.number_input("혈당", min_value=0.0)
+bp = st.number_input("혈압", min_value=0.0)
+skin = st.number_input("피부 두께", min_value=0.0)
+insulin = st.number_input("인슐린 수치", min_value=0.0)
+bmi = st.number_input("체질량지수(BMI)", min_value=0.0)
+gene = st.number_input("당뇨 유전 지수", min_value=0.0)
+age = st.number_input("나이", min_value=0, step=1)
 
-st.title("머신러닝 모델 성능 비교")
+# 예측 버튼
+if st.button("예측하기"):
 
-if st.button("모델 학습 및 평가"):
-
-    # 1. 독립변수 / 종속변수 분리
-    X = df.drop('결과', axis=1)
-    y = df['결과']
-
-    # 2. 학습 / 테스트 데이터 분리
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
-        test_size=0.2,
-        random_state=42
+    # DataFrame 생성
+    input_data = pd.DataFrame(
+        [[preg, glucose, bp, skin, insulin, bmi, gene, age]],
+        columns=[
+            '임신 횟수',
+            '혈당',
+            '혈압',
+            '피부 두께',
+            '인슐린 수치',
+            '체질량지수',
+            '당뇨 유전 지수',
+            '나이'
+        ]
     )
 
-    # 3. 스케일링
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    # 스케일링
+    input_scaled = scaler.transform(input_data)
 
-    # 4. 모델 생성
-    log_model = LogisticRegression(max_iter=1000)
-    rf_model = RandomForestClassifier(random_state=42)
-    knn_model = KNeighborsClassifier(n_neighbors=5)
-    svm_model = SVC(kernel='rbf', C=1)
+    # 예측
+    predicted = knn_model.predict(input_scaled)
+    prob = knn_model.predict_proba(input_scaled)
 
-    # 5. 모델 학습
-    log_model.fit(X_train_scaled, y_train)
-    rf_model.fit(X_train, y_train)
-    knn_model.fit(X_train_scaled, y_train)
-    svm_model.fit(X_train_scaled, y_train)
+    # 결과 출력
+    st.subheader("예측 결과")
 
-    # 6. 예측
-    log_pred = log_model.predict(X_test_scaled)
-    rf_pred = rf_model.predict(X_test)
-    knn_pred = knn_model.predict(X_test_scaled)
-    svm_pred = svm_model.predict(X_test_scaled)
+    if predicted[0] == 1:
+        st.error("당뇨병으로 예측됩니다.")
+    else:
+        st.success("정상으로 예측됩니다.")
 
-    # 7. 정확도 계산
-    log_acc = accuracy_score(y_test, log_pred)
-    rf_acc = accuracy_score(y_test, rf_pred)
-    knn_acc = accuracy_score(y_test, knn_pred)
-    svm_acc = accuracy_score(y_test, svm_pred)
-
-    # 8. 결과 출력
-    st.subheader("모델별 정확도")
-
-    st.write(f"로지스틱 회귀: {log_acc:.4f}")
-    st.write(f"랜덤포레스트: {rf_acc:.4f}")
-    st.write(f"KNN: {knn_acc:.4f}")
-    st.write(f"SVM: {svm_acc:.4f}")
-
-    # 표 형태 출력
-    result_df = pd.DataFrame({
-        "모델": ["로지스틱 회귀", "랜덤포레스트", "KNN", "SVM"],
-        "정확도": [log_acc, rf_acc, knn_acc, svm_acc]
-    })
-
-    st.dataframe(result_df)
-
-    # 막대그래프
-    st.bar_chart(result_df.set_index("모델"))
+    st.write(f"당뇨 확률: **{prob[0][1]*100:.1f}%**")
